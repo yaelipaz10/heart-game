@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<title>🎮 אלופת מערכת הדם 🫀</title>
+<style>
+body{
+    direction:rtl;
+    font-family:Arial;
+    text-align:center;
+    background:linear-gradient(135deg,#ffb6d9,#ffd6ec);
+    overflow-x:hidden;
+    margin:0;
+}
+.game-box{
+    background:white;
+    width:85%;
+    margin:30px auto;
+    padding:25px;
+    border-radius:25px;
+    box-shadow:0 0 20px rgba(0,0,0,0.2);
+}
+button{
+    display:block;
+    margin:10px auto;
+    padding:10px 20px;
+    border:none;
+    border-radius:15px;
+    background:#ff4da6;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+}
+button:hover{
+    background:#e60073;
+}
+.correct{color:green;font-weight:bold;}
+.wrong{color:red;font-weight:bold;}
+#confetti-canvas{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    pointer-events:none;
+    z-index:9999;
+}
+</style>
+</head>
+<body>
+
+<div id="start-screen" class="game-box">
+<h1>🎮 אלופת מערכת הדם 🫀👑</h1>
+<button onclick="startGame()">התחל משחק</button>
+</div>
+
+<div id="game-screen" class="game-box" style="display:none;">
+<p id="question"></p>
+<div id="answers"></div>
+<p id="result"></p>
+<p id="score"></p>
+<button id="retry-incorrect" style="display:none;" onclick="retryIncorrect()">🔄 חזור על התשובות הלא נכונות</button>
+</div>
+
+<canvas id="confetti-canvas"></canvas>
+
+<script>
+// --- כל 35 השאלות שלך ---
+const questions = [
+{q:"1. איזה חומר עובר מנאדיות הריאה אל תוך נימי הדם ולאן הוא מובל?",a:["א. פחמן דו חמצני אל תאי הגוף","ב. חמצן אל תאי הגוף","ג. חומרי מזון אל מערכת העיכול","ד. פחמן דו חמצני אל הלב"],c:1},
+{q:"2. אילו חומרים עוברים מתאי הגוף אל תוך נימי הדם ולאן הם מובלים?",a:["א. חמצן – אל מערכת הנשימה","ב. חומרי מזון – אל הלב","ג. חומרי פסולת – אל מערכת הנשימה ומערכת ההפרשה","ד. ויטמינים – אל הלב"],c:2},
+{q:"3. איזה חומר עובר מנימי הדם אל נאדיות הריאה ולאן הוא נפלט?",a:["א. חמצן אל האף","ב. מים אל מערכת ההפרשה","ג. פחמן דו־חמצני החוצה מהגוף בתהליך הנשיפה","ד. חומרי מזון אל הקיבה"],c:2},
+{q:"4. מה היתרון של צורת תאי הדם האדומים?",a:["א. אחסון גרעין","ב. הגדלת שטח פנים לקליטת חמצן","ג. מניעת היצמדות טסיות","ד. הגנה מתאי דם לבנים"],c:1},
+{q:"5. מדוע דפנות העורקים עבות יותר?",a:["א. מעבר פסולת","ב. האטת זרימה","ג. לעמוד בלחץ גבוה","ד. להכיל מסתמים"],c:2},
+{q:"6. איזה רכיב מוביל הורמונים ומלחים?",a:["א. תאי דם לבנים","ב. המוגלובין","ג. טסיות","ד. פלסמה"],c:3},
+{q:"7. כיצד מותאם מבנה הנימים?",a:["א. שכבת שריר עבה","ב. קוטר רחב","ג. שכבה אחת של תאים","ד. מכילים מסתמים"],c:2},
+{q:"8. חשיבות המחיצה בלב?",a:["א. וויסות קצב","ב. מניעת ערבוב דם","ג. יצירת לחץ","ד. אגירת דם"],c:1},
+{q:"9. עייפות כרונית – מה נראה?",a:["א. גלוקוז גבוה","ב. עודף טסיות","ג. מעט תאי דם אדומים","ד. הרבה תאי דם לבנים","ה. המוגלובין נמוך"],c:[2,4]},
+{q:"10. למה חדר שמאל עבה?",a:["א. מאגר חמצן","ב. מניעת חזרה לריאות","ג. קולט בלחץ גבוה","ד. מזרים לכל הגוף"],c:3},
+{q:"11. איך דם עולה מהרגליים?",a:["א. שאיבת נימים","ב. לחץ מאבי העורקים","ג. שרירים ומסתמים","ד. צמיגות נמוכה"],c:2},
+{q:"12. ירידת מים בגוף?",a:["א. עלייה בלבנים","ב. המחיצה תתרחב","ג. ייצור המוגלובין יואץ","ד. הפלסמה תרד והדם יסמיך"],c:3},
+{q:"13. רכיבי מערכת הדם?",a:["א. לב חדרים ריאות","ב. ורידים נימים עורקים","ג. לב כלי דם דם","ד. תאים ופלסמה"],c:2},
+{q:"14. תפקיד תאי דם אדומים?",a:["א. העברת חמצן","ב. העברת פחמן דו חמצני","ג. להילחם בזיהומים","ד. קרישת דם"],c:0},
+{q:"15. לאיזה חומר נקשר חמצן?",a:["א. לתאים בפלסמה","ב. לברזל בהמוגלובין","ג. לטסיות","ד. ללבנים"],c:1},
+{q:"16. היכן נוצרים תאי דם?",a:["א. בלב","ב. בריאות","ג. במח העצם","ד. בכבד"],c:2},
+{q:"17. הרבה תאי דם לבנים מסמל?",a:["א. מחסור בחמצן","ב. זיהום","ג. מחסור ברזל","ד. ירידה בטסיות"],c:1},
+{q:"18. יכולת מיוחדת של לבנים?",a:["א. נשיאת חמצן","ב. קרישה","ג. שינוי צורה ויציאה מכלי דם","ד. התחלקות בלב"],c:2},
+{q:"19. תפקיד טסיות?",a:["א. נשיאת חמצן","ב. קרישת דם","ג. להילחם בזיהומים","ד. הובלת מזון"],c:1},
+{q:"20. חוסר בטסיות?",a:["א. מחסור חמצן","ב. דימום ממושך","ג. התרבות לבנים","ד. לחץ גבוה"],c:1},
+{q:"21. שלושת כלי הדם?",a:["א. קנה וסמפונות","ב. לב ריאות כליות","ג. עורקים ורידים נימים","ד. תאים ונימים"],c:2},
+{q:"22. מהו עורק?",a:["א. מוביל ללב","ב. מוביל מהלב","ג. חילוף חומרים","ד. תא דם"],c:1},
+{q:"23. מהו וריד?",a:["א. מהלב לגוף","ב. חילוף חומרים","ג. תא דם","ד. מוביל ללב"],c:3},
+{q:"24. מהו נים?",a:["א. כלי גדול","ב. כלי קטן לחילוף","ג. כלי בינוני","ד. תא דם"],c:1},
+{q:"25. אבי העורקים?",a:["א. וריד גדול","ב. עורק ראשי","ג. חילוף חומרים","ד. לריאות"],c:1},
+{q:"26. תפקיד מסתמים?",a:["א. שני כיוונים","ב. כיוון אחד","ג. מפעילים לחץ","ד. עוצרים לרגליים"],c:1},
+{q:"27. עמידה ממושכת גורמת?",a:["א. המוגלובין נמוך","ב. האטת נשימה","ג. חזרה מעטה ללב","ד. סוכר נמוך"],c:2},
+{q:"28. סדר הסתעפות?",a:["א. אבי העורקים>עורקים>עורקיקים>נימים","ב. אבי העורקים>עורקיקים>נימים>וריד חלול","ג. עורק הלב>אבי העורקים>עורקיקים>נימים","ד. אבי העורקים>עורקיקים>ורידונים>נימים"],c:0},
+{q:"29. סדר חזרה ללב?",a:["א. נימים>ורידונים>ורידים>ווריד נבוב>לב","ב. נימים<ורידים<ורידונים<ווריד נבוב<לב","ג. נימים>ורידונים>ורידים>ווריד נבוב>לב","ד. נימים>עורקיקים>נימים>ורידונים>לב"],c:0},
+{q:"30. תאי דם לבנים יוצאים מכלי דם?",a:["א. נכון","ב. לא נכון"],c:0},
+{q:"31. דם בעורקים עני בחמצן?",a:["א. נכון","ב. לא נכון"],c:1},
+{q:"32. דם לריאות עני בחמצן?",a:["א. נכון","ב. לא נכון"],c:0},
+{q:"33. חמצן מהריאות עובר לדם?",a:["א. נכון","ב. לא נכון"],c:0},
+{q:"34. רק מערכת הדם מספקת מזון?",a:["א. נכון","ב. לא נכון"],c:1},
+{q:"35. אוויר שאיפה וזהה לנשיפה?",a:["א. נכון","ב. לא נכון"],c:1}
+];
+
+let current=0,score=0,incorrect=[];
+
+const startScreen=document.getElementById("start-screen");
+const gameScreen=document.getElementById("game-screen");
+const questionEl=document.getElementById("question");
+const answersEl=document.getElementById("answers");
+const resultEl=document.getElementById("result");
+const scoreEl=document.getElementById("score");
+const retryBtn=document.getElementById("retry-incorrect");
+const confettiCanvas=document.getElementById("confetti-canvas");
+
+// --- START GAME ---
+function startGame(){
+    startScreen.style.display="none";
+    gameScreen.style.display="block";
+    current=0;
+    score=0;
+    incorrect=[];
+    retryBtn.style.display="none";
+    showQuestion();
+}
+
+// --- SHOW QUESTION ---
+function showQuestion(){
+    if(current>=questions.length){
+        endGame();
+        return;
+    }
+    const q=questions[current];
+    questionEl.innerText=q.q;
+    answersEl.innerHTML="";
+    resultEl.innerHTML="";
+    q.a.forEach((ans,i)=>{
+        const btn=document.createElement("button");
+        btn.innerText=ans;
+        btn.onclick=()=>checkAnswer(i);
+        answersEl.appendChild(btn);
+    });
+}
+
+// --- CHECK ANSWER ---
+function checkAnswer(i){
+    const q=questions[current];
+    const correct=q.c;
+    if(Array.isArray(correct)?correct.includes(i):i===correct){
+        score++;
+        launchConfetti();
+        resultEl.innerHTML="<span class='correct'>✅ נכון!</span>";
+    }else{
+        let correctText=Array.isArray(correct)?correct.map(idx=>q.a[idx]).join("<br>"):q.a[correct];
+        incorrect.push(q);
+        launchConfetti();
+        resultEl.innerHTML="<span class='wrong'>❌ לא נכון!</span><br>התשובה הנכונה היא:<br>"+correctText;
+    }
+    current++;
+    setTimeout(showQuestion,2000);
+}
+
+// --- END GAME ---
+function endGame(){
+    questionEl.innerText="🎉 סיימת!";
+    answersEl.innerHTML="";
+    resultEl.innerHTML="";
+    scoreEl.innerHTML=`🏆 ניקוד: ${score} מתוך ${questions.length} <br> ${getRank(score)}`;
+    if(incorrect.length>0) retryBtn.style.display="block";
+    launchConfetti();
+    saveHighScore(score);
+}
+
+// --- RETRY INCORRECT ---
+function retryIncorrect(){
+    questions.splice(0,questions.length,...incorrect);
+    current=0;
+    score=0;
+    incorrect=[];
+    retryBtn.style.display="none";
+    showQuestion();
+}
+
+// --- RANK ---
+function getRank(score){
+    const percent=score/questions.length;
+    if(percent>=0.9) return "💎 קיסרית הלב!";
+    if(percent>=0.7) return "👑 מלכת הלב!";
+    if(percent>=0.5) return "🌸 נסיכת הלב!";
+    return "✨ לומדת חמודה!";
+}
+
+// --- SAVE HIGHSCORE ---
+function saveHighScore(score){
+    let hs=localStorage.getItem("highscore")||0;
+    if(score>hs) localStorage.setItem("highscore",score);
+}
+
+// --- CONFETTI מקצועי ---
+function launchConfetti(){
+    const ctx=confettiCanvas.getContext("2d");
+    confettiCanvas.width=window.innerWidth;
+    confettiCanvas.height=window.innerHeight;
+    const particles=[];
+    const colors=["#ff66a3","#ffb6d9","#ff4da6","#ffe6f0"];
+    for(let i=0;i<150;i++){
+        particles.push({
+            x:Math.random()*window.innerWidth,
+            y:Math.random()*-window.innerHeight,
+            r:Math.random()*8+4,
+            d:Math.random()*15+5,
+            color:colors[Math.floor(Math.random()*colors.length)],
+            tilt:Math.random()*10-10,
+            tiltAngleIncrement:Math.random()*0.1+0.05
+        });
+    }
+    function animate(){
+        ctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+        particles.forEach((p,i)=>{
+            ctx.fillStyle=p.color;
+            ctx.beginPath();
+            ctx.moveTo(p.x+p.tilt,p.y);
+            ctx.lineTo(p.x+p.tilt+5,p.y+p.r);
+            ctx.lineTo(p.x+p.tilt+10,p.y);
+            ctx.closePath();
+            ctx.fill();
+            p.y+=p.d;
+            p.tilt+=p.tiltAngleIncrement;
+            if(p.y>window.innerHeight) particles.splice(i,1);
+        });
+        if(particles.length>0) requestAnimationFrame(animate);
+    }
+    animate();
+}
+</script>
+
+</body>
+</html>
